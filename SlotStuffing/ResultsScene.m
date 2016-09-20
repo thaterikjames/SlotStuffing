@@ -132,9 +132,6 @@
         CCNodeColor *column1 = [CCNodeColor nodeWithColor:[CCColor blackColor] width:100 height:50];
         column1.positionType = CCPositionTypeNormalized;
         [column1 addChild:symbol];
-//        CCSprite *column1 = [CCSprite spriteWithImageNamed:@"results_column1.png"];
-//        column1.positionType = CCPositionTypeNormalized;
-//        [column1 addChild:symbol];
         [rowLayout addChild:column1];
         
         

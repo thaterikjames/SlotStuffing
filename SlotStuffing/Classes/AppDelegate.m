@@ -49,11 +49,7 @@
 
 -(CCScene *)startScene
 {
-	// This method should return the very first scene to be run when your app starts.
-    //CCScene *intro = [IntroScene scene];
-    //[AppDelegate setSceneSizeAndPosition:intro];
-    
-    return [IntroScene scene];
+	return [IntroScene scene];
     
 }
 

@@ -45,11 +45,7 @@
     self = [super init];
     if (!self) return(nil);
     
-    // Create a colored background (Dark Grey)
-//    CCSprite *background = [CCSprite spriteWithImageNamed:@"home-gradient-bg.png"];
-//    background.positionType = CCPositionTypeNormalized;
-//    background.position = ccp(0.5f, 0.5f);
-//    [self addChild:background];
+
     
     ScrollingGradient *gradient = [[ScrollingGradient alloc] init];
     [gradient setPosition:ccp(320/2, 568/2)];

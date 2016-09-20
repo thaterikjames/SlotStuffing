@@ -142,11 +142,6 @@
             rowLayout.positionType = CCPositionTypeNormalized;
             rowLayout.position = ccp(0.5f, 0.5f);
             
-//            SlotSymbol *symbol = [SlotSymbol spriteWithSymbolNamed:[fruit objectAtIndex:i]];
-//            symbol.positionType = CCPositionTypeNormalized;
-//            [symbol setScale:0.7f];
-            //symbol.position = ccp(0.5f, 0.5f);
-            
             CCNodeColor *column1 = [CCNodeColor nodeWithColor:[CCColor blackColor] width:100 height:50];
             column1.zOrder = 5;
             column1.positionType = CCPositionTypeNormalized;
@@ -199,39 +194,9 @@
             if(totalAdded < 7)
                 [buttonsLayout addChild:rowLayout];
             
-//            int payIndex = (int)[thisPay integerValue];
-//            
-//            [(NSMutableArray *)[groups objectAtIndex:payIndex - 2] addObject:rowLayout];
         }
         
-//        NSMutableArray *itemsToDisplay = [[NSMutableArray alloc] init];
-//        
-//        for(int i = 0; i < [groups count]; i++){
-//            for(int j = 0; j < [[groups objectAtIndex:i] count]; j++){
-//                [itemsToDisplay addObject:[[groups objectAtIndex:i] objectAtIndex:j]];
-//                if([itemsToDisplay count] >= 6){
-//                    break;
-//                }
-//            }
-//            if([itemsToDisplay count] >= 6){
-//                break;
-//            }
-//        }
-//        
-//       // NSArray* reversedArray = [[itemsToDisplay reverseObjectEnumerator] allObjects];
-//
-//        for(int i = 0; i < [itemsToDisplay count]; i++){
-//           // [buttonsLayout addChild:[itemsToDisplay objectAtIndex:i]];
-//        }
-//
-//        CCLabelTTF *combos = [CCLabelTTF labelWithString:scores fontName:@"Avenir-Black" fontSize:24.0f];
-//        [combos setHorizontalAlignment:CCTextAlignmentLeft];
-//        combos.anchorPoint = ccp(0.0, 0.5);
-//        combos.positionType = CCPositionTypeNormalized;
-//        combos.color = [CCColor whiteColor];
-//        combos.position = ccp(0.1f, 0.5f);
-        
-        
+
     }
     
     [self addChild:buttonsLayout];
