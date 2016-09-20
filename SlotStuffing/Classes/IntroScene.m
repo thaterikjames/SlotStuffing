@@ -9,7 +9,6 @@
 
 // Import the interfaces
 #import "IntroScene.h"
-#import "HelloWorldScene.h"
 #import "GameScene.h"
 #import "ResultsScene.h"
 #import "UserDataManager.h"
