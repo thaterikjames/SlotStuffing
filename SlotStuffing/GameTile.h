@@ -1,10 +1,4 @@
-//
-//  BlankTile.h
-//  Dont Tap the Crack
-//
-//  Created by Erik James on 6/1/14.
-//  Copyright 2014 Gangsta Apps. All rights reserved.
-//
+
 
 #import <Foundation/Foundation.h>
 #import "cocos2d.h"
@@ -28,7 +22,7 @@
 @property (atomic, readwrite) int soundOrder;
 
 -(void)bonusClicked;
--(void)setCrackCallback:(SEL)theCallback forId:(id)theId;
+-(void)setComboCallback:(SEL)theCallback forId:(id)theId;
 -(id)initWithSprite:(CCSprite *)sprite;
 -(CGRect)getRect;
 

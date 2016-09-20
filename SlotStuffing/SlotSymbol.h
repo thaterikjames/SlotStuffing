@@ -15,6 +15,8 @@
 
 + (id)spriteWithSymbolNamed:(NSString*)symbolName;
 
+-(void)bounce;
+
 @property(atomic, retain)NSString *symbolName;
 
 @end

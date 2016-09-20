@@ -7,8 +7,12 @@
 //
 
 #import "GameScene.h"
-//#import "GameDataManager.h"
+#import "ComboDisplay.h"
 #import "GameTile.h"
+#import "ResultsScene.h"
+#import "ResultsSceneAlt.h"
+#import "UserDataManager.h"
+#import "ScrollingGradient.h"
 
 @implementation GameScene
 {
@@ -22,6 +26,12 @@
     NSInteger totalDotsThisLevel;
     int dotsGatheredThisLevel;
     int dotsGeneratedThisLevel;
+    NSDictionary *payLines;
+    
+    NSMutableArray *currentResults;
+    
+    CCLabelTTF *bankDisplay;
+    CCLabelTTF *linesDisplay;
 }
 
 + (GameScene *)scene
@@ -35,8 +45,16 @@
     self = [super init];
     if (!self) return(nil);
     
-    currentSpeed = 4.0f;
-    totalDotsThisLevel = 20;
+    currentSpeed = 4.5f;
+    totalDotsThisLevel = [[UserDataManager sharedInstance] getLines];
+    
+    payLines =
+    @{@"apple" : @[@0, @2, @10, @100, @1000, @10000, @100000, @1000000],
+      @"cherry" : @[@0, @2, @10, @100, @1000, @10000, @100000, @1000000],
+      @"lemon" : @[@0, @2, @10, @100, @1000, @10000, @100000, @1000000],
+      @"pear" : @[@0, @5, @20, @100, @1000, @10000, @100000, @1000000],
+      @"watermelon" : @[@0, @5, @20, @100, @1000, @10000, @100000, @1000000]
+      };
     
     return self;
 }
@@ -46,39 +64,72 @@
 {
     [super onEnter];
     
-   // GameTile *testTile = [[GameTile alloc] initWithSprite:[self getWrongSprite]];
+    totalDotsThisLevel = [[UserDataManager sharedInstance] getLines];
     
-    //[testTile setPosition:ccp(100,100)];
-//    CCSprite *testSprite = [CCSprite spriteWithImageNamed:@"square_white.png"];
-//    [testSprite setPosition:ccp(testSprite.contentSize.width/2,testSprite.contentSize.height/2)];
-//    [self addChild:testSprite];
-//    return;
+    ScrollingGradient *gradient = [[ScrollingGradient alloc] init];
+    [gradient setPosition:ccp(320/2, 568/2)];
+    [self addChild:gradient];
     
+    CCSprite *bkg = [CCSprite spriteWithImageNamed:@"middle-path.png"];
+    [bkg setPosition:ccp(320/2, 568/2)];
+    [self addChild:bkg];
+  
     
     tileHolder = [[CCNode alloc] init];
-    //tileHolder.positionType = CCPositionTypeNormalized;
     tileHolder.userInteractionEnabled = YES;
-    [tileHolder setPosition:ccp(0,0)];
+    [tileHolder setPosition:ccp(20,0)];
     [self addChild: tileHolder];
     // Enable touch handling on scene node
     self.userInteractionEnabled = YES;
     
-//    GameTile * tile = [[GameTile alloc] initWithSprite:[self getTargetSprite]];
-//    [tile setPosition:ccp(100,100)];
-//    [tileHolder addChild:tile];
-    
     [self populate:4];
     
-   // [self start];
+    CCSprite *hudBKG = [CCSprite spriteWithImageNamed:@"hud-top-bg.png"];
+    [hudBKG setPosition:ccp(320/2, 568 - (hudBKG.contentSize.height/2))];
+    [self addChild:hudBKG];
     
+    
+    bankDisplay = [CCLabelTTF labelWithString:[ResultsScene returnFormattedDollarAmount:
+                                                     [[UserDataManager sharedInstance] getBank]] fontName:@"Avenir-Black" fontSize:36.0f];
+    [bankDisplay setHorizontalAlignment:CCTextAlignmentRight];
+    bankDisplay.positionType = CCPositionTypeNormalized;
+    bankDisplay.color = [CCColor whiteColor];
+    bankDisplay.position = ccp(0.5f, 0.96f);
+    [self addChild:bankDisplay];
+    
+    
+    linesDisplay = [CCLabelTTF labelWithString:[NSString stringWithFormat:@"Lines: %li", (long)totalDotsThisLevel] fontName:@"Avenir-Black" fontSize:24.0f];
+    [linesDisplay setHorizontalAlignment:CCTextAlignmentRight];
+    linesDisplay.positionType = CCPositionTypeNormalized;
+    linesDisplay.color = [CCColor greenColor];
+    linesDisplay.position = ccp(0.5f, 0.9f);
+    [self addChild:linesDisplay];
+    
+    NSTimeInterval theTimeInterval = 8;
+    
+    [[OALSimpleAudio sharedInstance] preloadBg:@"Tropicool & Peitzke - Cat Call.mp3" seekTime:theTimeInterval];
+    
+}
+
+-(void)updateBank
+{
+    [bankDisplay setString:[ResultsScene returnFormattedDollarAmount:
+                            [[UserDataManager sharedInstance] getBank]]];
 }
 
 -(void)start
 {
     dotsGatheredThisLevel = 0;
     
+    currentResults = [[NSMutableArray alloc] init];
+    
     [self schedule:@selector(updateTiles) interval:0.02f];
 
+    [[OALSimpleAudio sharedInstance] playBgWithLoop:YES];
+    
+    int currentBank = [[UserDataManager sharedInstance] getBank] - [[UserDataManager sharedInstance] getBet];
+    [[UserDataManager sharedInstance] setBank:currentBank];
+    [self updateBank];
 }
 
 
@@ -100,7 +151,6 @@
    dotsGeneratedThisLevel = 0;
     
     int clickOrderOffset = (windowHeight/tile.view.contentSize.height) + 1;
-    NSLog(@"clickOrderOffset = %i", clickOrderOffset);
     clickOrder = 0;
     
     while(totalHeight  < windowHeight){
@@ -109,34 +159,28 @@
         for(int i = 0; i < amountPerRow; i++){
             
             if(i == randomBlankTIle){
-                dotsGeneratedThisLevel++;
+                
                 if(goAdded || ((totalHeight + tileHeight) < windowHeight )){
+                    dotsGeneratedThisLevel++;
                     clickOrder++;
                     tile = [[GameTile alloc] initWithSprite:[self getTargetSprite]];
                     tile.goTile = NO;
                     tile.clickOrder = clickOrderOffset - clickOrder;
-                    
+                    [tile setComboCallback:@selector(addToCombo:) forId:self];
                 } else {
-                    //clickOrder = clickOrderOffset;
                     tile = [[GameTile alloc] initWithSprite:[self getGoSprite]];
                     tile.clickOrder = 0;
                     goAdded = YES;
                     tile.goTile = YES;
                 }
-                //tile.soundOrder = i;
-                NSLog(@"tile.clickOrder = %lu", tile.clickOrder);
                 tile.cracked = NO;
             } else{
                tile = [[GameTile alloc] initWithSprite:[self getWrongSprite]];
                 tile.cracked = YES;
                 
             }
-            //tile.bonusStar = NO;
-            
-            
             [tile setPosition:ccp(currentX + tile.contentSize.width/2, currentY )];
             [tileHolder addChild:tile];
-            
             
             tileHeight = tile.view.contentSize.height;
             currentX += tile.view.contentSize.width;
@@ -152,12 +196,6 @@
 
 -(void)updateTiles
 {
-    //    if(currentSlowDown > 0){
-    //        currentSlowDown--;
-    //    }
-    
-    
-        //NSLog(@"currentSpeed = %f", currentSpeed);
     [self updateScrollWithAmount:currentSpeed andAmountPerRow:4];
     
 }
@@ -182,7 +220,7 @@
     for(int i = 0; i < tiles.count; i++){
         tile = tiles[i];
         bottomY = min(bottomY, tile.position.y);
-        if(tile.position.y >= (windowHeight + tile.view.contentSize.height)){
+        if(tile.position.y >= (windowHeight)){
             
             if(tile.cracked == NO && tile.hasBeenClicked == NO){
                 locked = YES;
@@ -214,12 +252,11 @@
                 tile.clickOrder = clickOrder;
                 tile.soundOrder = i;
                 tile.bonusStar = NO;
+                [tile setComboCallback:@selector(addToCombo:) forId:self];
             } else {
-                
                 
                 tile = [[GameTile alloc] initWithSprite:[self getWrongSprite]];
                 tile.cracked = YES;
-                //tile.view.opacity = currentWrongOpacity;
                 tile.goTile = NO;
                 
             }
@@ -235,17 +272,17 @@
 
 -(CCSprite *)getTargetSprite
 {
-    return [CCSprite spriteWithImageNamed:@"square_white.png"];
+    return [CCSprite spriteWithImageNamed:@"tile-white.png"];
 }
 
 -(CCSprite *)getWrongSprite
 {
-    return [CCSprite spriteWithImageNamed:@"square_black.png"];
+    return [CCSprite spriteWithImageNamed:@"tile-empty.png"];
 }
 
 -(CCSprite *)getGoSprite
 {
-    return [CCSprite spriteWithImageNamed:@"square_go.png"];
+    return [CCSprite spriteWithImageNamed:@"tile-go.png"];
 }
 
 -(void)stopTimers
@@ -258,6 +295,7 @@
     locked = YES;
     [self stopTimers];
     
+    [[CCDirector sharedDirector] replaceScene:[ResultsSceneAlt sceneWithResults:currentResults]];
 }
 
 
@@ -271,17 +309,90 @@
     return touchPosition;
 }
 
+-(void)addToCombo:(NSString *)fruit
+{
+    [currentResults addObject:fruit];
+    [self checkForBrokenCombo];
+}
+
+-(void)checkForBrokenCombo
+{
+    if([currentResults count] <3){
+        return;
+    }
+    
+    if(!locked && [(NSString *)[currentResults objectAtIndex:[currentResults count] -1] isEqualToString:(NSString *)[currentResults objectAtIndex:[currentResults count] -2]]){
+        return;
+    }
+    
+    NSString *lastSymbolName = [currentResults objectAtIndex:[currentResults count]-2];
+    
+    int lastCheckIndex = (int)[currentResults count] - 3;
+    
+    if(locked){
+        if([(NSString *)[currentResults objectAtIndex:[currentResults count] -1] isEqualToString:(NSString *)[currentResults objectAtIndex:[currentResults count] -2]]){
+            lastCheckIndex = (int)[currentResults count] - 2;
+        }
+    }
+    
+    
+    int comboLength = 1;
+    
+    for(int i = lastCheckIndex; i >=0; i--){
+        if([(NSString *)[currentResults objectAtIndex:i] isEqualToString:lastSymbolName]){
+            comboLength++;
+        } else {
+            break;
+        }
+    }
+    
+    if(comboLength > 1){
+        ComboDisplay *combo = [ComboDisplay comboWithNumber:comboLength ofFruit:lastSymbolName];
+        [combo setPosition:ccp(-320/2, 408 - (combo.contentSize.height/2))];
+        [self addChild:combo];
+        
+        [combo runAction:[CCActionSequence actions:[CCActionEaseElasticOut actionWithAction:[CCActionMoveTo actionWithDuration:0.5f
+        position:ccp(320/2, 408 - (combo.contentSize.height/2))] period:0.6f],
+        [CCActionDelay actionWithDuration:0.5f], [CCActionMoveTo actionWithDuration:0.15f position:ccp(480, 408 - (combo.contentSize.height/2))],
+        [CCActionRemove action],nil]];
+        
+        int award = [[(NSArray *)[payLines objectForKey:lastSymbolName] objectAtIndex:(comboLength - 1)] intValue];
+        
+        int currentBank = [[UserDataManager sharedInstance] getBank] + award;
+        [[UserDataManager sharedInstance] setBank:currentBank];
+        
+        CCActionCallBlock *update = [CCActionCallBlock actionWithBlock:^{
+            [self updateBank];
+        }];
+        
+        CCLabelTTF *bonusLabel = [CCLabelTTF labelWithString:[ResultsScene returnFormattedDollarAmount:
+                                                                                     award] fontName:@"Avenir-Black" fontSize:48.0f];
+        [bonusLabel setHorizontalAlignment:CCTextAlignmentCenter];
+        bonusLabel.color = [CCColor whiteColor];
+        
+        
+        [bonusLabel setHorizontalAlignment:CCTextAlignmentCenter];
+        [bonusLabel setScale:1.0f];
+        bonusLabel.position = ccp(combo.contentSize.width/2, combo.contentSize.height/2);
+        [combo addChild:bonusLabel];
+        [bonusLabel runAction:[CCActionSequence actions:[CCActionFadeTo actionWithDuration:1.0f opacity:0.8f],
+                               [CCActionFadeTo actionWithDuration:1.0f opacity:0.0f],nil]];
+        
+        [bonusLabel runAction:[CCActionSequence actions:[CCActionMoveBy actionWithDuration:1.0f position:ccp(0,100)],update,nil]];
+        
+        OALSimpleAudio *audio = [OALSimpleAudio sharedInstance];
+        [audio playEffect:@"combo.wav" loop:NO];
+    }
+}
+
 - (void)touchBegan:(UITouch *)touch withEvent:(UIEvent *)event
 {
     if(locked)
         return;
     
-    
-    CGPoint touchPoint = [self positionOfTouch:touch];
-    
-    
-    
-    touchPoint.y -= self.position.y;
+   CGPoint touchPoint = [self positionOfTouch:touch];
+    touchPoint.y -= tileHolder.position.y;
+    touchPoint.x -= tileHolder.position.x;
     // NSLog(@"click");
     NSArray *theChildren = [tileHolder children];
     
@@ -293,20 +404,21 @@
             if(child.cracked){
                 [child clicked];
                 
+                OALSimpleAudio *audio = [OALSimpleAudio sharedInstance];
+                [audio playEffect:@"lose2.wav" loop:NO];
+                
                 locked = YES;
-                [self stop];
+                [self performSelector:@selector(stop) withObject:self afterDelay:0.5f];
                 return;
             }
             
             if(goClicked ){
-                NSLog(@"-------------");
-                NSLog(@"child.clickOrder = %lu. nextClick == %lu", child.clickOrder,nextClick);
-                NSLog(@"-------------");
+               
                 if(child.clickOrder == nextClick){
-                    NSLog(@">>>> Clicked %@", [child clicked]);
-                    //[self updateScore];
+                    [child clicked];
                     
                     [self correctClick:child];
+                    
                     
                     CCSprite *outline = [self getTargetSprite];
                     [outline setPosition:ccp(outline.contentSize.width/2, outline.contentSize.height/2)];
@@ -327,36 +439,19 @@
                     
                     nextClick++;
                     
-                    
-                    // if(currentSpeed < 10){
-                    
-//                    if(autoAdvanceTiles){
-//                        if(nextClick % nextLevel == 0){
-//                            currentSpeed+= speedIncreaseAmount;
-//                            //                            if(currentWrongOpacity < 1.0f){
-//                            //                                currentWrongOpacity += 0.1f;
-//                            //                            }
-//                        }
-//                    } else{
-//                        //[self updateScrollWithAmount:timerAdvance andAmountPerRow:totalPerRow];
-//                        timerUpdates += timePixelAdvanceAmount;
-//                    }
-                    // }
                 }
                 
             } else if(child.goTile){
+
                 
-//                if(nufScreenUp){
-//                    nufScreenUp = NO;
-//                    [self removeChild:nufScreen];
-//                }
+                OALSimpleAudio *audio = [OALSimpleAudio sharedInstance];
+                [audio playEffect:@"tile-touch.wav" loop:NO];
+                
                 
                 nextClick++;
                 goClicked = YES;
                 [child clicked];
                 [self start];
-                
-                [self correctClick:child];
                 
                 CCSprite *outline = [self getTargetSprite];
                 
@@ -376,8 +471,6 @@
                   spawn,removeMySprite,
                   nil]];
                 
-               
-                
             }
             
             [child.view runAction:[CCActionSequence actionOne:[CCActionScaleTo actionWithDuration:0.1f scale:0.6f]
@@ -389,14 +482,15 @@
             
         }
         
-        //NSLog(@"------------");
     }
-    
-    
 }
 
 -(void)correctClick:(GameTile *)tile
 {
+    
+    OALSimpleAudio *audio = [OALSimpleAudio sharedInstance];
+    [audio playEffect:@"tile-touch.wav" loop:NO];
+    
     NSArray *theChildren = [tileHolder children];
     GameTile *child;
     for (int i = 0; i < theChildren.count; i++){
@@ -415,18 +509,17 @@
             [child.view runAction:[CCActionScaleTo actionWithDuration:fadeTime scale:scaleSize]];
             
         }
-        
-        
     }
     
-    if( ++dotsGatheredThisLevel >= totalDotsThisLevel){
+     [linesDisplay setString:[NSString stringWithFormat:@"Lines: %li", ((long)totalDotsThisLevel - ++dotsGatheredThisLevel)]];
+    
+    if( dotsGatheredThisLevel >= totalDotsThisLevel){
         locked = YES;
-        [self stopTimers];
-        [self performSelector:@selector(stop) withObject:self afterDelay:0.5f];
-        
+        //[self stopTimers];
+        [self performSelector:@selector(stop) withObject:self afterDelay:2.5f];
+        NSLog(@"currentResults = %@", currentResults);
     }
     NSLog(@"dotsGatheredThisLevel = %i", dotsGatheredThisLevel);
-    NSLog(@"totalDotsThisLevel = %li", (long)totalDotsThisLevel);
 }
 
 

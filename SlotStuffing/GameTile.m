@@ -1,22 +1,13 @@
-//
-//  BlankTile.m
-//  Dont Tap the Crack
-//
-//  Created by Erik James on 6/1/14.
-//  Copyright 2014 Gangsta Apps. All rights reserved.
-//
 
 #import "GameTile.h"
-#import "GameDataManager.h"
-#import "UserDataManager.h"
 #import "SlotSymbol.h"
+
+#define TILE_HEIGHT 96.0f
 
 @implementation GameTile
 {
     NSMutableArray *symbols;
     BOOL stopRequested;
-    
-    
     
 }
 
@@ -25,10 +16,6 @@
     if(self = [self init]){
         
         CCNodeColor *scissorRect = [CCNodeColor nodeWithColor:[CCColor clearColor] width:sprite.contentSize.width height:sprite.contentSize.height];
-        //[scissorRect setAnchorPoint:ccp(0.5,0.5f)];
-        //[scissorRect setPosition:ccp(240,160)];
-        
-        
         scissor = [CCClippingNode clippingNodeWithStencil:scissorRect];
         [scissor setContentSize:self.contentSize];
         //[scissor setPositionType:CCPositionTypeNormalized];
@@ -38,8 +25,6 @@
         [self addChild:_view];
         [self addChild:scissor];
         [sprite setPosition:ccp(sprite.contentSize.width/2, sprite.contentSize.height/2)];
-        //[sprite setScale:0.9f];
-       //  [self addChild:scissor];
         _hasBeenClicked = NO;
     }
     
@@ -53,8 +38,6 @@
     {
         self.userInteractionEnabled = YES;
         
-        
-        
     }
     return self;
 }
@@ -65,7 +48,7 @@
     [super onEnter];
     
     _locked = NO;
-    NSArray *symbolNames = @[@"cherries",@"lemon",@"orange"];
+    NSArray *symbolNames = @[@"apple",@"cherry",@"lemon", @"pear", @"watermelon"];
     
     symbols = [[NSMutableArray alloc] init];
     
@@ -80,9 +63,7 @@
         CCSprite *symbol;
         for(int i = 0; i < [symbols count]; i++){
             symbol = [symbols objectAtIndex:i];
-            [symbol setScale:0.5f];
-            [symbol setPosition:ccp(40,40 + (i * 80))];
-            //[symbol setPositionType:CCPositionTypeNormalized];
+            [symbol setPosition:ccp(35,TILE_HEIGHT/2 + (i * TILE_HEIGHT))];
             [scissor addChild:symbol];
         }
          [self schedule:@selector(updateSymbols) interval:0.02f];
@@ -93,15 +74,17 @@
 
 -(void)updateSymbols
 {
-    CCSprite *symbol;
+    SlotSymbol *symbol;
     for(int i = 0; i < [symbols count]; i++){
         symbol = [symbols objectAtIndex:i];
         [symbol setPosition:ccp(symbol.position.x, symbol.position.y - 8)];
-        if(symbol.position.y <= -40){
-            [symbol setPosition:ccp(symbol.position.x, symbol.position.y + ([symbols count] * 80))];
+        if(symbol.position.y <= -TILE_HEIGHT/2){
+            [symbol setPosition:ccp(symbol.position.x, symbol.position.y + ([symbols count] * TILE_HEIGHT))];
         }
-        if(stopRequested && symbol.position.y == 40){
+        if(stopRequested && symbol.position.y == TILE_HEIGHT/2){
             [self unschedule:@selector(updateSymbols)];
+            [callBackObject performSelector:callback withObject:[symbol symbolName]];
+            [symbol bounce];
         }
     }
 }
@@ -113,18 +96,13 @@
     
     _hasBeenClicked = YES;
     
-
-    CCSprite *sprite;
-    
-    sprite = [CCSprite spriteWithImageNamed:@"tile_selected.png"];
-    
-    
-    
-//    [sprite setScale:0.5f];
-    [sprite setPosition:ccp(_view.contentSize.width/2, _view.contentSize.height/2)];
-    [self addChild:sprite];
-//
-    [sprite runAction:[CCActionFadeTo actionWithDuration:0.2f opacity:0.3f]];
+    if(_cracked){
+        CCSprite *sprite;
+        
+        sprite = [CCSprite spriteWithImageNamed:@"tile-empty-touch.png"];
+        [sprite setPosition:ccp(_view.contentSize.width/2, _view.contentSize.height/2)];
+        [self addChild:sprite];
+    }
     
     if(!_cracked && !_goTile){
         stopRequested = YES;
@@ -132,13 +110,12 @@
         SlotSymbol *symbol;
         for(int i = 0; i < [symbols count]; i++){
             symbol = [symbols objectAtIndex:i];
-            if(MIN(MAX(symbol.position.y,40), 120) == symbol.position.y){
+            if(min(max(symbol.position.y,TILE_HEIGHT/2), TILE_HEIGHT * 1.5) == symbol.position.y){
                 return [symbol symbolName];
             }
         }
         
     }
-    
     
     return @"";
 }
@@ -148,7 +125,7 @@
     return CGRectMake(self.position.x, self.position.y, _view.contentSize.width, _view.contentSize.height);
 }
 
--(void)setCrackCallback:(SEL)theCallback forId:(id)theId{
+-(void)setComboCallback:(SEL)theCallback forId:(id)theId{
     callback = theCallback;
     callBackObject = theId;
 }
